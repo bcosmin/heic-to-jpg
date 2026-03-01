@@ -3,32 +3,57 @@ import pillow_heif
 from PIL import Image
 from pathlib import Path
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from tqdm import tqdm
 
-def convert_images(input_dir, output_dir):
+def convert_images(input_input, output_dir, status_label=None):
+    """Convert HEIC images and optionally update a status label.
+
+    status_label will be set to "Converted X of Y images" as the loop runs.
+    """
     pillow_heif.register_heif_opener()
-    files = [f for f in os.listdir(input_dir) if f.lower().endswith('.heic')]
-    
+
+    # determine list of source files
+    if isinstance(input_input, (list, tuple)):
+        files = list(input_input)
+    else:
+        if os.path.isdir(input_input):
+            files = [str(p) for p in Path(input_input).iterdir() if p.suffix.lower() == '.heic']
+        else:
+            files = input_input.split(';') if ';' in input_input else [input_input]
+
+    files = [f for f in files if str(f).lower().endswith('.heic')]
+
     if not files:
-        messagebox.showwarning("No Files", "No HEIC files found in the selected folder.")
+        messagebox.showwarning("No Files", "No HEIC files found in the selected input.")
         return
 
-    for filename in tqdm(files, desc="Converting", unit="photo"):
+    total = len(files)
+
+    for idx, filepath in enumerate(files):
         try:
-            image = Image.open(Path(input_dir) / filename)
-            target_path = Path(output_dir) / f"{Path(filename).stem}.jpg"
+            image = Image.open(filepath)
+            target_path = Path(output_dir) / f"{Path(filepath).stem}.jpg"
             image.convert("RGB").save(target_path, "JPEG", quality=90)
         except Exception as e:
-            print(f"Error converting {filename}: {e}")
+            print(f"Error converting {filepath}: {e}")
 
-    messagebox.showinfo("Success", f"Converted {len(files)} images successfully!")
+        # update status label if provided
+        if status_label is not None:
+            status_label.config(text=f"Converted {idx+1} of {total} images")
+            root.update_idletasks()
+
+    messagebox.showinfo("Success", f"Converted {total} images successfully!")
 
 def select_input():
-    path = filedialog.askdirectory()
-    if path:
+    # prompt for one or more HEIC files only
+    paths = filedialog.askopenfilenames(
+        title="Select HEIC files",
+        filetypes=[("HEIC files", "*.heic")]
+    )
+    if paths:
         input_entry.delete(0, tk.END)
-        input_entry.insert(0, path)
+        input_entry.insert(0, ';'.join(paths))
 
 def select_output():
     path = filedialog.askdirectory()
@@ -41,18 +66,25 @@ def start_process():
     out_path = output_entry.get()
     
     if not in_path or not out_path:
-        messagebox.showerror("Error", "Please select both folders.")
+        messagebox.showerror("Error", "Please select both input and output.")
         return
         
-    convert_images(in_path, out_path)
+    convert_btn.config(state=tk.DISABLED)
+    status_label.config(text="Starting...")
+    convert_images(in_path, out_path, status_label)
+    convert_btn.config(state=tk.NORMAL)
+    status_label.config(text="Done")
 
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("HEIC to JPG Converter")
-root.geometry("500x250")
+# height can be smaller now that bar is gone
+root.geometry("550x340")
+# allow user to resize if desired
+root.resizable(True, True)
 
 # Input Section
-tk.Label(root, text="Source Folder (HEIC):").pack(pady=(20, 0))
+tk.Label(root, text="Source (HEIC files):").pack(pady=(20, 0))
 input_entry = tk.Entry(root, width=50)
 input_entry.pack(side=tk.TOP, padx=10)
 tk.Button(root, text="Browse", command=select_input).pack(pady=5)
@@ -64,7 +96,12 @@ output_entry.pack(side=tk.TOP, padx=10)
 tk.Button(root, text="Browse", command=select_output).pack(pady=5)
 
 # Convert Button
-tk.Button(root, text="START CONVERSION", bg="green", fg="white", 
-          font=('Helvetica', 10, 'bold'), command=start_process).pack(pady=20)
+convert_btn = tk.Button(root, text="START CONVERSION", bg="lightblue", fg="black",
+          font=('Helvetica', 14, 'bold'), width=25, height=2, command=start_process)
+convert_btn.pack(pady=20)
+
+# status label below the convert button
+status_label = tk.Label(root, text="", font=('Helvetica', 12))
+status_label.pack(pady=(0,20))
 
 root.mainloop()
