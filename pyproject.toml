@@ -1,0 +1,10 @@
+
+[project]
+name = "heic-to-jpg"
+version = "0.1.0"
+dependencies = [
+	"Pillow>=9.0",
+	"pillow-heif>=0.8",
+	"tqdm>=4.0",
+]
+requires-python = ">=3.8"
