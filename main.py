@@ -1,15 +1,21 @@
+"""HEIC to JPG converter GUI application using Tkinter."""
+
 import os
-import pillow_heif
-from PIL import Image
 from pathlib import Path
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
-from tqdm import tqdm
+from tkinter import filedialog, messagebox
 
-def convert_images(input_input, output_dir, status_label=None):
+import pillow_heif
+from PIL import Image
+
+
+def convert_images(input_input, output_dir, update_status=None):
     """Convert HEIC images and optionally update a status label.
 
-    status_label will be set to "Converted X of Y images" as the loop runs.
+    Args:
+        input_input: File path(s) or list of HEIC files to convert.
+        output_dir: Directory to save converted JPG files.
+        update_status: Optional Tkinter label widget to update conversion progress.
     """
     pillow_heif.register_heif_opener()
 
@@ -35,17 +41,19 @@ def convert_images(input_input, output_dir, status_label=None):
             image = Image.open(filepath)
             target_path = Path(output_dir) / f"{Path(filepath).stem}.jpg"
             image.convert("RGB").save(target_path, "JPEG", quality=90)
-        except Exception as e:
+        except (OSError, IOError) as e:
             print(f"Error converting {filepath}: {e}")
 
         # update status label if provided
-        if status_label is not None:
-            status_label.config(text=f"Converted {idx+1} of {total} images")
+        if update_status is not None:
+            update_status.config(text=f"Converted {idx+1} of {total} images")
             root.update_idletasks()
 
     messagebox.showinfo("Success", f"Converted {total} images successfully!")
 
+
 def select_input():
+    """Open file dialog to select HEIC files for conversion."""
     # prompt for one or more HEIC files only
     paths = filedialog.askopenfilenames(
         title="Select HEIC files",
@@ -55,20 +63,24 @@ def select_input():
         input_entry.delete(0, tk.END)
         input_entry.insert(0, ';'.join(paths))
 
+
 def select_output():
+    """Open directory dialog to select output folder for JPGs."""
     path = filedialog.askdirectory()
     if path:
         output_entry.delete(0, tk.END)
         output_entry.insert(0, path)
 
+
 def start_process():
+    """Validate inputs and start the image conversion process."""
     in_path = input_entry.get()
     out_path = output_entry.get()
-    
+
     if not in_path or not out_path:
         messagebox.showerror("Error", "Please select both input and output.")
         return
-        
+
     convert_btn.config(state=tk.DISABLED)
     status_label.config(text="Starting...")
     convert_images(in_path, out_path, status_label)
