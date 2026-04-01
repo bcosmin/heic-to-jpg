@@ -7,10 +7,10 @@ from tkinter import filedialog, messagebox, ttk
 import threading
 
 import pillow_heif
-from PIL import Image
+from PIL import Image # type: ignore
 
 # Global variable to hold the conversion thread
-conversion_thread = None
+CONVERSION_THREAD = None
 
 def convert_images(input_input, output_dir, update_status=None, progress_bar=None):
     """Convert HEIC images and optionally update a status label.
@@ -37,10 +37,15 @@ def convert_images(input_input, output_dir, update_status=None, progress_bar=Non
 
     for idx, filepath in enumerate(files):
         # Schedule UI updates on the main thread
+        # Capture current_filepath in the lambda to avoid closure issues
         if update_status is not None:
-            root.after(0, lambda i=idx+1, t=total: update_status.config(text=f"Converting {i} of {t} images: {Path(filepath).name}"))
+            root.after(0, lambda i=idx+1, t=total, current_filepath=filepath:
+                       update_status.config(
+                           text=f"Converting {i} of {t} images: {Path(current_filepath).name}"
+                       ))
         if progress_bar is not None:
             root.after(0, lambda i=idx+1: progress_bar.config(value=i))
+
 
         try:
             image = Image.open(filepath)
@@ -60,15 +65,14 @@ def _threaded_conversion_task(file_list, output_dir, status_label, progress_bar)
 
 def _on_conversion_complete(converted_count):
     """Callback function executed on the main thread after conversion completes."""
-    convert_btn.config(state=tk.NORMAL)
-    status_label.config(text="Done")
-    progress_bar['value'] = 0 # Reset progress bar
+    _convert_btn_widget.config(state=tk.NORMAL)
+    _status_label_widget.config(text="Done")
+    _progress_bar_widget['value'] = 0 # Reset progress bar
     messagebox.showinfo("Success", f"Converted {converted_count} images successfully!")
 
 def _check_conversion_thread():
     """Checks if the conversion thread is still running and schedules itself again."""
-    global conversion_thread
-    if conversion_thread and conversion_thread.is_alive():
+    if CONVERSION_THREAD and CONVERSION_THREAD.is_alive():
         # If the thread is still running, check again after a short delay
         root.after(100, _check_conversion_thread)
     else:
@@ -76,7 +80,7 @@ def _check_conversion_thread():
         # ensure the UI is reset in case _on_conversion_complete wasn't called
         # (e.g., due to an unhandled exception in the thread).
         # For robustness, we can ensure the button is re-enabled.
-        # If the thread finished normally, _on_conversion_complete would have been called.
+        # If the thread finished normally, _on_conversion_complete would have been called. 
         if convert_btn['state'] == tk.DISABLED:
             _on_conversion_complete(0) # Call with 0 or a more appropriate error state
 
@@ -127,15 +131,15 @@ def start_process():
         messagebox.showwarning("No Files", "No HEIC files found in the selected input.")
         return
 
-    convert_btn.config(state=tk.DISABLED)
-    status_label.config(text="Starting conversion...")
-    progress_bar['value'] = 0
+    _convert_btn_widget.config(state=tk.DISABLED)
+    _status_label_widget.config(text="Starting conversion...")
+    _progress_bar_widget['value'] = 0
 
-    global conversion_thread
-    conversion_thread = threading.Thread(target=_threaded_conversion_task,
-                                         args=(files_to_convert, out_path, status_label, progress_bar))
-    conversion_thread.start()
-    _check_conversion_thread() # Start checking the thread status
+    global CONVERSION_THREAD
+    CONVERSION_THREAD = threading.Thread(target=_threaded_conversion_task,
+                                         args=(files_to_convert, out_path, _status_label_widget, _progress_bar_widget))
+    CONVERSION_THREAD.start()
+    _check_conversion_thread()  # Start checking the thread status
 
 # --- GUI Setup ---
 root = tk.Tk(className='HEICtoJPGConverter')
@@ -153,17 +157,17 @@ output_entry = tk.Entry(root, width=50)
 output_entry.pack(side=tk.TOP, padx=10)
 tk.Button(root, text="Browse", command=select_output).pack(pady=5)
 
-# Convert Button
-convert_btn = tk.Button(root, text="START CONVERSION", bg="lightblue", fg="black",
-          font=('Helvetica', 14, 'bold'), width=25, height=2, command=start_process)
-convert_btn.pack(pady=20)
+# Convert Button 
+_convert_btn_widget = tk.Button(root, text="START CONVERSION", bg="lightblue", fg="black",
+                                font=('Helvetica', 14, 'bold'), width=25, height=2, command=start_process)
+_convert_btn_widget.pack(pady=20)
 
 # status label below the convert button
-status_label = tk.Label(root, text="", font=('Helvetica', 12))
-status_label.pack(pady=(0,20))
+_status_label_widget = tk.Label(root, text="", font=('Helvetica', 12))
+_status_label_widget.pack(pady=(0,20))
 
 # Progress Bar
-progress_bar = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
-progress_bar.pack(pady=(0, 20))
+_progress_bar_widget = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate")
+_progress_bar_widget.pack(pady=(0, 20))
 
 root.mainloop()
