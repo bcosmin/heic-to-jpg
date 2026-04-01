@@ -80,8 +80,8 @@ def _check_conversion_thread():
         # ensure the UI is reset in case _on_conversion_complete wasn't called
         # (e.g., due to an unhandled exception in the thread).
         # For robustness, we can ensure the button is re-enabled.
-        # If the thread finished normally, _on_conversion_complete would have been called. 
-        if convert_btn['state'] == tk.DISABLED:
+        # If the thread finished normally, _on_conversion_complete would have been called.
+        if _convert_btn_widget['state'] == tk.DISABLED:
             _on_conversion_complete(0) # Call with 0 or a more appropriate error state
 
 
@@ -132,7 +132,7 @@ def start_process():
         return
 
     _convert_btn_widget.config(state=tk.DISABLED)
-    _status_label_widget.config(text="Starting conversion...")
+    _status_label_widget.config(text="Starting conversion...") # pylint: disable=line-too-long
     _progress_bar_widget['value'] = 0
 
     global CONVERSION_THREAD
@@ -158,8 +158,8 @@ output_entry.pack(side=tk.TOP, padx=10)
 tk.Button(root, text="Browse", command=select_output).pack(pady=5)
 
 # Convert Button 
-_convert_btn_widget = tk.Button(root, text="START CONVERSION", bg="lightblue", fg="black",
-                                font=('Helvetica', 14, 'bold'), width=25, height=2, command=start_process)
+_convert_btn_widget = tk.Button(root, text="START CONVERSION", bg="lightblue", fg="black", # pylint: disable=line-too-long
+                                font=('Helvetica', 14, 'bold'), width=25, height=2, command=start_process) 
 _convert_btn_widget.pack(pady=20)
 
 # status label below the convert button
