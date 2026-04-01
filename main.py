@@ -40,9 +40,9 @@ def convert_images(input_input, output_dir, update_status=None, progress_bar=Non
         # Capture current_filepath in the lambda to avoid closure issues
         if update_status is not None:
             root.after(0, lambda i=idx+1, t=total, current_filepath=filepath:
-                       update_status.config(
-                           text=f"Converting {i} of {t} images: {Path(current_filepath).name}"
-                       ))
+                    update_status.config(
+                        text=f"Converting {i} of {t} images: {Path(current_filepath).name}"
+                    )) 
         if progress_bar is not None:
             root.after(0, lambda i=idx+1: progress_bar.config(value=i))
 
@@ -97,12 +97,12 @@ def select_input():
         input_entry.insert(0, ';'.join(paths))
 
 
-def select_output():
+def select_output(): 
     """Open directory dialog to select output folder for JPGs."""
     path = filedialog.askdirectory()
     if path:
         output_entry.delete(0, tk.END)
-        output_entry.insert(0, path)
+        output_entry.insert(0, path) 
 
 
 def start_process():
@@ -135,9 +135,9 @@ def start_process():
     _status_label_widget.config(text="Starting conversion...") # pylint: disable=line-too-long
     _progress_bar_widget['value'] = 0
 
-    global CONVERSION_THREAD
+    global CONVERSION_THREAD # pylint: disable=global-statement
     CONVERSION_THREAD = threading.Thread(target=_threaded_conversion_task,
-                                         args=(files_to_convert, out_path, _status_label_widget, _progress_bar_widget))
+                                        args=(files_to_convert, out_path, _status_label_widget, _progress_bar_widget))
     CONVERSION_THREAD.start()
     _check_conversion_thread()  # Start checking the thread status
 
@@ -158,8 +158,8 @@ output_entry.pack(side=tk.TOP, padx=10)
 tk.Button(root, text="Browse", command=select_output).pack(pady=5)
 
 # Convert Button 
-_convert_btn_widget = tk.Button(root, text="START CONVERSION", bg="lightblue", fg="black", # pylint: disable=line-too-long
-                                font=('Helvetica', 14, 'bold'), width=25, height=2, command=start_process) 
+_convert_btn_widget = tk.Button(root, text="START CONVERSION", bg="lightblue", fg="black", # pylint: disable=line-too-long 
+                                font=('Helvetica', 14, 'bold'), width=25, height=2, command=start_process)
 _convert_btn_widget.pack(pady=20)
 
 # status label below the convert button
